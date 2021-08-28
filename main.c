@@ -7,18 +7,27 @@ int CHAR_BUFFER_SIZE = 1024;
 char *DELIMITER = ",";
 int VECTOR_WIDTH = 5;
 
-void lineToVector(char *line)
+double* lineToVector(char *line, int width)
 {
 
     char *token = strtok(line, DELIMITER);
 
-    while (token)
+    double d[width];
+
+    int count = 0;
+
+    while (token && count < width)
     {
+
+        d[count] = sscanf(token,"");
 
         printf("%s", token);
 
         token = strtok(NULL, DELIMITER);
+        count++;
     }
+
+    return d;
 }
 
 int fileLength(FILE *file)
@@ -36,13 +45,40 @@ int fileLength(FILE *file)
     return length;
 }
 
+double *createEmptyDoubleVector(int x, int y)
+{
+    return malloc(x * y * sizeof(double));
+}
+
+void populateVectorFromFile(double *vector, FILE *file, char *delimiter)
+{
+
+    int line = 0;
+}
+
 int main(int argc, char *argv[])
 {
     
     FILE *inputVectorFile = fopen("vectors.csv","r");
 
     int numVectors = fileLength(inputVectorFile);
-    printf("Number of Vectors: %d", numVectors);
+    printf("Number of Vectors: %d\n", numVectors);
+
+    double *vectors = createEmptyDoubleVector(numVectors, VECTOR_WIDTH);
+
+    populateVectorFromFile(vectors, inputVectorFile, DELIMITER);
+
+    for (int i = 0; i < numVectors; i++)
+    {
+
+        for (int j = 0; j < VECTOR_WIDTH; j++)
+        {
+
+            printf("{i=%d,j=%d} %f", i, j, *(vectors + i * VECTOR_WIDTH + j));
+        }
+    }
+
+    printf("\n");
 
     char lineBuffer[CHAR_BUFFER_SIZE];
 
@@ -51,7 +87,8 @@ int main(int argc, char *argv[])
         printf("%s",lineBuffer);
         lineToVector(lineBuffer);
     }
-    
+
+    free(vectors);
     fclose(inputVectorFile);
 
     return EXIT_SUCCESS;
