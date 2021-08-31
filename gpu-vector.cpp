@@ -1,5 +1,6 @@
 
 #include <stdlib.h>
+#include <time.h>
 #include "hip/hip_runtime.h"
 
 __global__ void vector_euclidian_distance(int width, int n, int *a, int *b, double *c)
@@ -10,14 +11,16 @@ __global__ void vector_euclidian_distance(int width, int n, int *a, int *b, doub
     if (thread_id < n)
     {
 
-        // double accumulator = 0;
+        double accumulator = 0;
 
-        // int *row = (a + thread_id);
+        int *row = (a + thread_id);
 
-        // for (int i = 0; i < width; i++)
-        // {
-        //     // accumulator += pow((row + i) - (b + i), 2);
-        // }
+        for (int i = 0; i < width; i++)
+        {
+            accumulator += pow(((double)*(row + i) - (double)*(b + i)), 2);
+        }
+
+        *(c + thread_id) = sqrt(accumulator);
     }
 }
 
@@ -32,7 +35,7 @@ int *generate_random_int_vector(int width, int num_vectors)
     {
         for (int j = 0; j < width; j++)
         {
-            *(vectors + i * width + j) = rand();
+            *(vectors + i * width + j) = rand() % 100;
         }
     }
 
@@ -53,10 +56,11 @@ void print_int_vector(int *vector, int width, int num_vectors)
 
 int main(int argc, char *argv[])
 {
+    srand(time(NULL));
 
     const int BLOCK_SIZE = 1024;
-    const int VECTOR_WIDTH = 10;
-    const int NUMBER_VECTORS = 2048;
+    const int VECTOR_WIDTH = 5;
+    const int NUMBER_VECTORS = 1024 * 16;
     const int NUM_GRIDS = (NUMBER_VECTORS / BLOCK_SIZE) + 1;
 
     //generate the input & target vector
@@ -83,17 +87,21 @@ int main(int argc, char *argv[])
     hipMalloc(&device_output, output_bytes);
 
     hipMemcpyHtoD(device_vectors, host_vectors, vectors_bytes);
-    hipMemcpyHtoD(device_vectors, host_vectors, vectors_bytes);
+    hipMemcpyHtoD(device_target, host_target, vectors_bytes);
 
     // Launch the kernel
     hipLaunchKernelGGL(vector_euclidian_distance, dim3(NUM_GRIDS), dim3(BLOCK_SIZE), 0, 0, VECTOR_WIDTH, NUMBER_VECTORS, device_vectors, device_target, device_output);
     hipDeviceSynchronize();
 
-    //Clear up
+    //copy output back to the host
+    hipMemcpyDtoH(host_output, device_output, output_bytes);
+
+    printf("Freeing host...\n");
     free(host_vectors);
     free(host_target);
     free(host_output);
 
+    printf("Freeing device...\n");
     hipFree(device_vectors);
     hipFree(device_target);
     hipFree(device_output);
