@@ -2,10 +2,7 @@
 #include <stdlib.h>
 #include "hip/hip_runtime.h"
 
-#define toDevice hipMemcpyHostToDevice
-#define fromDevice hipMemcpyDeviceToHost
-
-__global__ void vector_euclidian_distance(int width, int n, double *a, double *b, double *c)
+__global__ void vector_euclidian_distance(int width, int n, int *a, int *b, double *c)
 {
 
     int thread_id = blockIdx.x * blockDim.x + threadIdx.x;
@@ -13,14 +10,14 @@ __global__ void vector_euclidian_distance(int width, int n, double *a, double *b
     if (thread_id < n)
     {
 
-        double accumulator = 0;
+        // double accumulator = 0;
 
-        int i;
+        // int *row = (a + thread_id);
 
-        for (i = 0; i < w; i++)
-        {
-            accumulator = 0;
-        }
+        // for (int i = 0; i < width; i++)
+        // {
+        //     // accumulator += pow((row + i) - (b + i), 2);
+        // }
     }
 }
 
@@ -64,10 +61,10 @@ int main(int argc, char *argv[])
 
     //generate the input & target vector
     int *host_vectors = generate_random_int_vector(VECTOR_WIDTH, NUMBER_VECTORS);
-    print_int_vector(host_vectors, VECTOR_WIDTH, NUMBER_VECTORS);
+    // print_int_vector(host_vectors, VECTOR_WIDTH, NUMBER_VECTORS);
 
     int *host_target = generate_random_int_vector(VECTOR_WIDTH, 1);
-    print_int_vector(host_target, VECTOR_WIDTH, 1);
+    // print_int_vector(host_target, VECTOR_WIDTH, 1);
 
     //container for the output
     double *host_output = (double *)malloc(NUMBER_VECTORS * sizeof(double));
@@ -85,11 +82,11 @@ int main(int argc, char *argv[])
     hipMalloc(&device_target, target_bytes);
     hipMalloc(&device_output, output_bytes);
 
-    hipMemcpy(device_vectors, host_vectors, vectors_bytes, toDevice);
-    hipMemcpy(device_vectors, host_vectors, vectors_bytes, toDevice);
+    hipMemcpyHtoD(device_vectors, host_vectors, vectors_bytes);
+    hipMemcpyHtoD(device_vectors, host_vectors, vectors_bytes);
 
     // Launch the kernel
-    hipLaunchKenerlGGL(vector_euclidian_distance, dim3(NUM_GRIDS), dim3(BLOCK_SIZE), 0, 0);
+    hipLaunchKernelGGL(vector_euclidian_distance, dim3(NUM_GRIDS), dim3(BLOCK_SIZE), 0, 0, VECTOR_WIDTH, NUMBER_VECTORS, device_vectors, device_target, device_output);
     hipDeviceSynchronize();
 
     //Clear up
@@ -97,7 +94,9 @@ int main(int argc, char *argv[])
     free(host_target);
     free(host_output);
 
-    free(device_vectors);
-    free(device_target);
-    free(device_output);
+    hipFree(device_vectors);
+    hipFree(device_target);
+    hipFree(device_output);
+
+    return EXIT_SUCCESS;
 }
